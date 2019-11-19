@@ -1,0 +1,81 @@
+#!/usr/bin/python
+
+import sys
+import os
+import json
+import requests
+import time
+
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
+from bs4 import BeautifulSoup
+from argparse import ArgumentParser
+
+def load_type(t):
+
+    return '{}: '.format(t.capitalize())
+
+def banner():
+
+    banner_str = '''
+ _______  _______  __   __  ___      ___      _______
+|       ||       ||  | |  ||   |    |   |    |   _   |
+|  _____||       ||  |_|  ||   |    |   |    |  |_|  |
+| |_____ |       ||       ||   |    |   |    |       |
+|_____  ||      _||_     _||   |___ |   |___ |       |
+ _____| ||     |_   |   |  |       ||       ||   _   |
+|_______||_______|  |___|  |_______||_______||__| |__|
+    '''
+
+    print(banner_str)
+
+def main():
+
+    parser = ArgumentParser(description='scylla.sh CLI tool')
+
+    parser.add_argument('-o', '--offset', help='record offset', default='0')
+    parser.add_argument('-c', '--count', help='query', default='500')
+    parser.add_argument('-q', '--query', help='query')
+    parser.add_argument('-t', '--type', help='type', default='email')
+    parser.add_argument('-v', '--verbose', help='Increase verbosity')
+    parser.add_argument('-l', '--lookup', help='Lookup plain text for hash online', action='store_true', default=False)
+
+    args = parser.parse_args()
+
+    count = args.count
+    offset = args.offset
+    type = args.type
+    query = args.query
+    lookup = args.lookup
+    verbose = args.verbose
+
+    url = 'https://scylla.sh/search?q={}+{}&num={}&from={}'.format(load_type(type), query, count, offset)
+
+    print '[*] Searching scylla.sh for leaked {} credentials...'.format(query)
+
+    r = requests.get(url, headers={'Accept': 'application/json'}, verify=False)
+    c = r.status_code
+
+    if c == 500:
+        print '[-] Got back an Internal Server Error, which means the server is potentially down. Try again momentarily, or use a browser to issue the following request if possible:'
+        print '{}\n'.format(url)
+
+    if c == 200:
+
+        records = r.json()
+        print '[+] {} records found!\n'.format(len(records))
+        time.sleep(1)
+
+        for record in records:
+            rkeys = record['_source'].keys()
+
+            for obj in sorted(list(set(rkeys))):
+                print '{0:10}: {1:5}'.format(obj, record['_source'][obj])
+
+            print('\n')
+
+if __name__ == '__main__':
+
+    banner()
+    main()
