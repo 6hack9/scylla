@@ -71,7 +71,7 @@ def main():
             rkeys = record['_source'].keys()
 
             for obj in sorted(list(set(rkeys))):
-                print '{0:10}: {1:5}'.format(obj, record['_source'][obj])
+                print '{0:10}: {1:5}'.format(obj.encode('utf-8'), record['_source'][obj].encode('utf-8'))
 
             print('\n')
 
