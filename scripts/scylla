@@ -52,16 +52,26 @@ def main():
     save_file = args.save
     verbose = args.verbose
 
-    url = 'https://scylla.sh/search?q={}+{}&from={}&size={}'.format(load_type(type), query, offset, count)
+    domain = 'https://scylla.sh'
+    endpoint = '/search'
+    params = '?q={}+{}&from={}&size={}'.format(load_type(type), query, offset, count)
 
-    print '[*] Searching scylla.sh for leaked {} credentials...'.format(query)
+    url = '{}{}{}'.format(domain, endpoint, params)
+
+#    url = 'https://scylla.sh/search?q={}+{}&from={}&size={}'.format(load_type(type), query, offset, count)
+
+    print '[*] Searching scylla.sh for {} breach records using {} query: {}'.format(count, type, query)
 
     r = requests.get(url, headers={'Accept': 'application/json'}, verify=False)
     c = r.status_code
 
     if c == 500:
-        print '[-] Got back an Internal Server Error, which means the server is potentially down. Try again momentarily, or use a browser to issue the following request if possible:'
+        print '[-] Got back an Internal Server Error.\n'
+        print '[*] This means the Lucene syntax in the sent query is improperly formatted, or the server is potentially down.'
+        print '[*] Try again momentarily, or use a browser to issue a request to the following URL if possible:\n'
         print '{}\n'.format(url)
+
+        sys.exit()
 
     if c == 200:
 
@@ -72,20 +82,23 @@ def main():
             with open(save_file, 'w') as write_json_records:
                 write_json_records.write(json.dumps(records, indent=2))
 
-            print '[+] Records saved to {}\n'.format(save_file)
-
-        time.sleep(1)
-
+            print '[+] {} records saved to {}\n'.format(len(records), save_file)
 
         for record in records:
             rkeys = record['_source'].keys()
 
             for obj in sorted(list(set(rkeys))):
+                # try to Unicode the key and value
                 try:
                     output_line = '{0:10}: {1:5}'.format(obj.encode('utf-8'), record['_source'][obj].encode('utf-8'))
 
+                    print output_line
+
+                # key/value isn't Unicode, output as is
                 except:
                     output_line = '{0:10}: {1:5}'.format(obj, record['_source'][obj])
+
+                    print output_line
 
 if __name__ == '__main__':
 
