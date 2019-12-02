@@ -13,8 +13,18 @@ from bs4 import BeautifulSoup
 from argparse import ArgumentParser
 
 def load_type(t):
+    '''Takes a string argument, evaluates it, and uses it to build and
+       return a Lucence formatted query string'''
+    if len(t.split('_')) > 2:
+        print 'ERROR: incorrect type'
 
-    return '{}: '.format(t.capitalize())
+        return False
+
+    if '_' in t:
+        return '{}{}:'.format(t.split('_')[0], t.split('_')[1])
+
+    else:
+        return '{}: '.format(t.capitalize())
 
 def banner():
 
@@ -34,13 +44,14 @@ def main():
 
     parser = ArgumentParser(description='scylla.sh CLI tool')
 
-    parser.add_argument('-o', '--offset', help='record start offset value (default is 0)', default='0')
     parser.add_argument('-c', '--count', help='number of records to retrieve (default is 500)', default='500')
-    parser.add_argument('-q', '--query', help='query')
-    parser.add_argument('-t', '--type', help='type', default='email')
-    parser.add_argument('-v', '--verbose', help='Increase verbosity')
+    parser.add_argument('-o', '--offset', help='record start offset value (default is 0)', default='0')
+    parser.add_argument('-t', '--type', help='Type of record data to search for (email, user_id, user, name, ip, pass_hash, password, pass_salt, domain)', default='email')
+    parser.add_argument('-q', '--query', help='query to search')
     parser.add_argument('-s', '--save', help='Save Scylla results to output file')
-    parser.add_argument('-l', '--lookup', help='Lookup plain text for hash online', action='store_true', default=False)
+
+    parser.add_argument('--quiet', action='store_true',  help='quiet mode')
+    parser.add_argument('--verbose', action='store_true', help='verbose mode')
 
     args = parser.parse_args()
 
@@ -48,8 +59,8 @@ def main():
     offset = args.offset
     type = args.type
     query = args.query
-    lookup = args.lookup
     save_file = args.save
+    quiet_mode = args.quiet
     verbose = args.verbose
 
     domain = 'https://scylla.sh'
@@ -58,13 +69,12 @@ def main():
 
     url = '{}{}{}'.format(domain, endpoint, params)
 
-#    url = 'https://scylla.sh/search?q={}+{}&from={}&size={}'.format(load_type(type), query, offset, count)
-
-    print '[*] Searching scylla.sh for {} breach records using {} query: {}'.format(count, type, query)
+    print '[*] Querying Scylla API for {} breached "{}" records using search string: {}'.format(count, type, query)
 
     r = requests.get(url, headers={'Accept': 'application/json'}, verify=False)
     c = r.status_code
 
+    # HTTP 500 usually/probably means our query isn't proper... server may still be down though
     if c == 500:
         print '[-] Got back an Internal Server Error.\n'
         print '[*] This means the Lucene syntax in the sent query is improperly formatted, or the server is potentially down.'
@@ -73,32 +83,38 @@ def main():
 
         sys.exit()
 
+    # We're good, let's optionally save the JSON data to a file before parsing it
     if c == 200:
 
         records = r.json()
         print '[+] {} records found!\n'.format(len(records))
 
+        # Save file condition
         if save_file:
             with open(save_file, 'w') as write_json_records:
                 write_json_records.write(json.dumps(records, indent=2))
 
             print '[+] {} records saved to {}\n'.format(len(records), save_file)
 
-        for record in records:
-            rkeys = record['_source'].keys()
+        # Save file condition done, parse records and optionally output them (if quiet mode not enabled)
 
-            for obj in sorted(list(set(rkeys))):
-                # try to Unicode the key and value
-                try:
-                    output_line = '{0:10}: {1:5}'.format(obj.encode('utf-8'), record['_source'][obj].encode('utf-8'))
+        if not quiet_mode:
 
-                    print output_line
+            for record in records:
+                rkeys = record['_source'].keys()
 
-                # key/value isn't Unicode, output as is
-                except:
-                    output_line = '{0:10}: {1:5}'.format(obj, record['_source'][obj])
+                print '-' * 100
+                for obj in sorted(list(set(rkeys))):
+                    # try to Unicode the key and value
+                    try:
+                        print '{0:10}: {1:5}'.format(obj.encode('utf-8'), record['_source'][obj].encode('utf-8'))
 
-                    print output_line
+                    # key/value isn't Unicode, output as is
+                    except:
+                        print '{0:10}: {1:5}'.format(obj, record['_source'][obj])
+
+                print '-' * 100
+                print '\n'
 
 if __name__ == '__main__':
 
