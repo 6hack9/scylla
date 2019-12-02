@@ -6,7 +6,7 @@ Written by k0fin
 
 ## Requirements & Installation
 
-* As separate commands
+As separate commands
 
     $ sudo apt-get -y install git python-pip
     $ sudo git clone https://github.com/k0fin/scylla.git
@@ -15,7 +15,7 @@ Written by k0fin
     $ sudo python setup.py install
     $ scylla --help
 
-* As a one-liner
+As a one-liner
 
     $ sudo apt-get update && sudo apt-get -y upgrade && sudo apt-get -y install git python-pip && sudo git clone https://github.com/k0fin/scylla.git && cd scylla && sudo pip install -r requirements.txt && sudo python setup.py install && scylla --help
 
@@ -58,7 +58,9 @@ The Scylla CLI tool supports the same Lucene syntax supported by the front-end w
 
 ## Usage
 
-    * Asdf
+Query to return 1000 breached email addresses matching the "@hackme.com" address scheme and save the results to a JSON file called "hackme.json":
+
+    $ scylla -t email -q '@hackme.com' --save hackme.json --count 1000
 
 ## Todo
 
