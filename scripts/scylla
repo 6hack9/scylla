@@ -34,11 +34,12 @@ def main():
 
     parser = ArgumentParser(description='scylla.sh CLI tool')
 
-    parser.add_argument('-o', '--offset', help='record offset', default='0')
-    parser.add_argument('-c', '--count', help='query', default='500')
+    parser.add_argument('-o', '--offset', help='record start offset value (default is 0)', default='0')
+    parser.add_argument('-c', '--count', help='number of records to retrieve (default is 500)', default='500')
     parser.add_argument('-q', '--query', help='query')
     parser.add_argument('-t', '--type', help='type', default='email')
     parser.add_argument('-v', '--verbose', help='Increase verbosity')
+    parser.add_argument('-s', '--save', help='Save Scylla results to output file')
     parser.add_argument('-l', '--lookup', help='Lookup plain text for hash online', action='store_true', default=False)
 
     args = parser.parse_args()
@@ -48,9 +49,10 @@ def main():
     type = args.type
     query = args.query
     lookup = args.lookup
+    save_file = args.save
     verbose = args.verbose
 
-    url = 'https://scylla.sh/search?q={}+{}&num={}&from={}'.format(load_type(type), query, count, offset)
+    url = 'https://scylla.sh/search?q={}+{}&from={}&size={}'.format(load_type(type), query, offset, count)
 
     print '[*] Searching scylla.sh for leaked {} credentials...'.format(query)
 
@@ -65,15 +67,25 @@ def main():
 
         records = r.json()
         print '[+] {} records found!\n'.format(len(records))
+
+        if save_file:
+            with open(save_file, 'w') as write_json_records:
+                write_json_records.write(json.dumps(records, indent=2))
+
+            print '[+] Records saved to {}\n'.format(save_file)
+
         time.sleep(1)
+
 
         for record in records:
             rkeys = record['_source'].keys()
 
             for obj in sorted(list(set(rkeys))):
-                print '{0:10}: {1:5}'.format(obj.encode('utf-8'), record['_source'][obj].encode('utf-8'))
+                try:
+                    output_line = '{0:10}: {1:5}'.format(obj.encode('utf-8'), record['_source'][obj].encode('utf-8'))
 
-            print('\n')
+                except:
+                    output_line = '{0:10}: {1:5}'.format(obj, record['_source'][obj])
 
 if __name__ == '__main__':
 
