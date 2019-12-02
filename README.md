@@ -6,12 +6,18 @@ Written by k0fin
 
 ## Requirements & Installation
 
+* As separate commands
+
     $ sudo apt-get -y install git python-pip
     $ sudo git clone https://github.com/k0fin/scylla.git
     $ cd scylla
-    $ pip install -r requirements.txt
-    $ python setup.py install
+    $ sudo pip install -r requirements.txt
+    $ sudo python setup.py install
     $ scylla --help
+
+* As a one-liner
+
+    $ sudo apt-get update && sudo apt-get -y upgrade && sudo apt-get -y install git python-pip && sudo git clone https://github.com/k0fin/scylla.git && cd scylla && sudo pip install -r requirements.txt && sudo python setup.py install && scylla --help
 
 ## Breach Databases
 
